@@ -61,5 +61,10 @@ void can_decode(uint32_t id, const uint8_t *data, uint8_t len)
             vehicle_data.inverter_temp_right =
                 s16_be(&data[6]) / 10.0f;
             break;
+
+        case 0x754:
+            vehicle_data.air1_closed = data[0];
+            vehicle_data.air2_closed = data[1];
+            break;
     }
 }

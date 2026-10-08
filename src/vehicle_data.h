@@ -39,6 +39,9 @@ typedef struct {
     uint8_t bspd_ok;
     uint8_t bspd_instant;
 
+    uint8_t air1_closed;
+    uint8_t air2_closed;
+
     RTDFailure last_failure;
 } VehicleData;
 

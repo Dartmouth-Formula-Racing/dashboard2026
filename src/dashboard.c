@@ -14,6 +14,11 @@ static lv_obj_t *motor_right_label;
 static lv_obj_t *inverter_left_label;
 static lv_obj_t *inverter_right_label;
 
+static lv_obj_t *air1_box;
+static lv_obj_t *air1_label;
+static lv_obj_t *air2_box;
+static lv_obj_t *air2_label;
+
 static lv_obj_t *rpm_label;
 
 static void make_data_box(lv_obj_t *parent,
@@ -73,6 +78,45 @@ static void make_data_box(lv_obj_t *parent,
         0,
         -5
     );
+}
+
+static void make_status_box(lv_obj_t *parent,
+                            lv_obj_t **box_label,
+                            lv_obj_t **text_label,
+                            const char *name,
+                            int x,
+                            int y)
+{
+    lv_obj_t *box = lv_obj_create(parent);
+
+    lv_obj_set_size(box, 150, 42);
+    lv_obj_set_pos(box, x, y);
+    lv_obj_set_scrollbar_mode(box, LV_SCROLLBAR_MODE_OFF);
+
+    lv_obj_set_style_bg_color(box, lv_color_hex(0x202020), 0);
+    lv_obj_set_style_border_width(box, 0, 0);
+    lv_obj_set_style_radius(box, 10, 0);
+
+    lv_obj_t *label = lv_label_create(box);
+
+    lv_label_set_text_fmt(label, "%s: --", name);
+
+    lv_obj_set_style_text_font(
+        label,
+        &lv_font_montserrat_18,
+        0
+    );
+
+    lv_obj_set_style_text_color(
+        label,
+        lv_color_hex(0xFFFFFF),
+        0
+    );
+
+    lv_obj_center(label);
+
+    *box_label = box;
+    *text_label = label;
 }
 
 static const char *failure_text(RTDFailure failure)
@@ -260,6 +304,41 @@ void dashboard_create(void)
         660,
         120
     );
+
+    make_status_box(
+        screen,
+        &air1_box,
+        &air1_label,
+        "AIR 1",
+        10,
+        190
+    );
+
+    make_status_box(
+        screen,
+        &air2_box,
+        &air2_label,
+        "AIR 2",
+        10,
+        245
+    );
+}
+
+static void update_status_box(lv_obj_t *box,
+                              lv_obj_t *label,
+                              const char *name,
+                              uint8_t closed)
+{
+    if(closed)
+    {
+        lv_obj_set_style_bg_color(box, lv_color_hex(0x0F6B2F), 0);
+        lv_label_set_text_fmt(label, "%s: CLOSED", name);
+    }
+    else
+    {
+        lv_obj_set_style_bg_color(box, lv_color_hex(0x8A1F1F), 0);
+        lv_label_set_text_fmt(label, "%s: OPEN", name);
+    }
 }
 
 void dashboard_update(void)
@@ -352,4 +431,18 @@ void dashboard_update(void)
             0
         );
     }
+
+    update_status_box(
+        air1_box,
+        air1_label,
+        "AIR 1",
+        vehicle_data.air1_closed
+    );
+
+    update_status_box(
+        air2_box,
+        air2_label,
+        "AIR 2",
+        vehicle_data.air2_closed
+    );
 }
