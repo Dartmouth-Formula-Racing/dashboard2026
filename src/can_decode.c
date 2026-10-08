@@ -30,11 +30,14 @@ void can_decode(uint32_t id, const uint8_t *data, uint8_t len)
             break;
 
         case 0x751:
-            vehicle_data.throttle =
-                u16_be(&data[0]) / 1000.0f;
-
             vehicle_data.rpm =
+                s16_be(&data[0]);
+
+            vehicle_data.efficiency =
                 s16_be(&data[2]);
+
+            vehicle_data.odometer =
+                u16_be(&data[4]);
             break;
 
         case 0x752:
@@ -65,6 +68,17 @@ void can_decode(uint32_t id, const uint8_t *data, uint8_t len)
         case 0x754:
             vehicle_data.air1_closed = data[0];
             vehicle_data.air2_closed = data[1];
+            break;
+
+        case 0x755:
+            vehicle_data.throttle =
+                u16_be(&data[0]) / 1000.0f;
+
+            vehicle_data.steering_angle_raw =
+                u16_be(&data[2]);
+
+            vehicle_data.brake_pressure_raw =
+                u16_be(&data[4]);
             break;
     }
 }

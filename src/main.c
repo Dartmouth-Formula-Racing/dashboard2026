@@ -21,7 +21,14 @@ static void simulate_can(void)
     uint8_t frame_751[8] = {
         0x02, 0xEE,
         0x0B, 0xB8,
-        0, 0,
+        0x12, 0x34,
+        0, 0
+    };
+
+    uint8_t frame_755[8] = {
+        0x01, 0xF4,
+        0x0B, 0x20,
+        0x03, 0x20,
         0, 0
     };
 
@@ -79,6 +86,12 @@ static void simulate_can(void)
     can_decode(
         0x754,
         frame_754,
+        8
+    );
+
+    can_decode(
+        0x755,
+        frame_755,
         8
     );
 }

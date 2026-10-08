@@ -18,8 +18,12 @@ typedef enum {
 
 typedef struct {
     float throttle;
+    uint16_t steering_angle_raw;
+    uint16_t brake_pressure_raw;
 
     int16_t rpm;
+    int16_t efficiency;
+    uint16_t odometer;
 
     float pack_voltage;
     float pack_current;

@@ -14,12 +14,32 @@ static lv_obj_t *motor_right_label;
 static lv_obj_t *inverter_left_label;
 static lv_obj_t *inverter_right_label;
 
+static lv_obj_t *steering_bar;
+static lv_obj_t *steering_label;
+
+static lv_obj_t *throttle_bar;
+static lv_obj_t *throttle_label;
+
+static lv_obj_t *brake_bar;
+static lv_obj_t *brake_label;
+
 static lv_obj_t *air1_box;
 static lv_obj_t *air1_label;
 static lv_obj_t *air2_box;
 static lv_obj_t *air2_label;
 
 static lv_obj_t *rpm_label;
+
+static int32_t clamp_int32(int32_t value, int32_t min, int32_t max)
+{
+    if(value < min)
+        return min;
+
+    if(value > max)
+        return max;
+
+    return value;
+}
 
 static void make_data_box(lv_obj_t *parent,
                           lv_obj_t **value_label,
@@ -119,6 +139,81 @@ static void make_status_box(lv_obj_t *parent,
     *text_label = label;
 }
 
+static void make_vertical_gauge(lv_obj_t *parent,
+                                lv_obj_t **label_out,
+                                lv_obj_t **bar_out,
+                                const char *name,
+                                int x,
+                                int y,
+                                int height,
+                                int32_t max_value)
+{
+    lv_obj_t *label = lv_label_create(parent);
+    lv_label_set_text(label, name);
+
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_color(label, lv_color_hex(0xCCCCCC), 0);
+
+    lv_obj_set_size(label, 120, 25);
+    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
+
+    lv_obj_set_style_transform_pivot_x(label, 60, 0);
+    lv_obj_set_style_transform_pivot_y(label, 12, 0);
+    lv_obj_set_style_transform_rotation(label, 2700, 0);
+
+    lv_obj_set_pos(label, x - 75, y + height / 2 - 12);
+
+    lv_obj_t *bar = lv_bar_create(parent);
+
+    lv_obj_set_size(bar, 20, height);
+    lv_obj_set_pos(bar, x, y);
+
+    lv_bar_set_range(bar, 0, max_value);
+    lv_bar_set_value(bar, 0, LV_ANIM_OFF);
+    lv_bar_set_mode(bar, LV_BAR_MODE_NORMAL);
+    lv_bar_set_orientation(bar, LV_BAR_ORIENTATION_VERTICAL);
+
+    lv_obj_set_style_bg_color(bar, lv_color_hex(0x2E2E2E), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(bar, lv_color_hex(0x0F6B2F), LV_PART_INDICATOR);
+
+    *label_out = label;
+    *bar_out = bar;
+}
+
+static void make_steering_indicator(lv_obj_t *parent,
+                                    lv_obj_t **label_out,
+                                    lv_obj_t **bar_out)
+{
+    lv_obj_t *label = lv_label_create(parent);
+    lv_label_set_text(label, "STEERING");
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_color(label, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 4);
+
+    lv_obj_t *bar = lv_bar_create(parent);
+    lv_obj_set_size(bar, 220, 16);
+    lv_obj_set_pos(bar, 290, 30);
+    lv_bar_set_range(bar, -100, 100);
+    lv_bar_set_value(bar, 0, LV_ANIM_OFF);
+    lv_bar_set_mode(bar, LV_BAR_MODE_SYMMETRICAL);
+
+    lv_obj_set_style_bg_color(bar, lv_color_hex(0x2E2E2E), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(bar, lv_color_hex(0x1E90FF), LV_PART_INDICATOR);
+
+    lv_obj_t *center_mark = lv_obj_create(parent);
+    lv_obj_set_size(center_mark, 2, 22);
+    lv_obj_set_pos(center_mark, 399, 27);
+    lv_obj_set_style_radius(center_mark, 0, 0);
+    lv_obj_set_style_border_width(center_mark, 0, 0);
+    lv_obj_set_style_bg_color(center_mark, lv_color_hex(0xE0E0E0), 0);
+    lv_obj_set_style_bg_opa(center_mark, LV_OPA_COVER, 0);
+
+    *label_out = label;
+    *bar_out = bar;
+}
+
 static const char *failure_text(RTDFailure failure)
 {
     switch(failure)
@@ -152,6 +247,8 @@ static const char *failure_text(RTDFailure failure)
 void dashboard_create(void)
 {
     lv_obj_t *screen = lv_screen_active();
+
+    lv_obj_set_scrollbar_mode(screen, LV_SCROLLBAR_MODE_OFF);
 
     lv_obj_set_style_bg_color(
         screen,
@@ -228,7 +325,7 @@ void dashboard_create(void)
         failure_label,
         LV_ALIGN_TOP_MID,
         0,
-        70
+        130
     );
 
     rpm_label = lv_label_create(screen);
@@ -322,6 +419,34 @@ void dashboard_create(void)
         10,
         245
     );
+
+    make_steering_indicator(
+        screen,
+        &steering_label,
+        &steering_bar
+    );
+
+    make_vertical_gauge(
+        screen,
+        &throttle_label,
+        &throttle_bar,
+        "THROTTLE",
+        680,
+        160,
+        170,
+        1000
+    );
+
+    make_vertical_gauge(
+        screen,
+        &brake_label,
+        &brake_bar,
+        "BRAKE",
+        755,
+        160,
+        170,
+        4095
+    );
 }
 
 static void update_status_box(lv_obj_t *box,
@@ -389,6 +514,29 @@ void dashboard_update(void)
         inverter_right_label,
         "%.1f C",
         vehicle_data.inverter_temp_right
+    );
+
+    lv_bar_set_value(
+        throttle_bar,
+        (int32_t)(vehicle_data.throttle * 1000.0f),
+        LV_ANIM_OFF
+    );
+
+    lv_bar_set_value(
+        brake_bar,
+        vehicle_data.brake_pressure_raw,
+        LV_ANIM_OFF
+    );
+
+    int32_t steering_percent =
+        ((int32_t)vehicle_data.steering_angle_raw - 2048) * 100 / 2048;
+
+    steering_percent = clamp_int32(steering_percent, -100, 100);
+
+    lv_bar_set_value(
+        steering_bar,
+        steering_percent,
+        LV_ANIM_OFF
     );
 
     lv_label_set_text(
