@@ -2,6 +2,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
     RTD_FAIL_NONE = 0,
     RTD_FAIL_DRIVE_LOCKOUT,
@@ -39,3 +43,7 @@ typedef struct {
 } VehicleData;
 
 extern VehicleData vehicle_data;
+
+#ifdef __cplusplus
+}
+#endif
