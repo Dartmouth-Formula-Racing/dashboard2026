@@ -30,6 +30,9 @@ static lv_obj_t *air2_label;
 
 static lv_obj_t *rpm_label;
 
+static VehicleData prev_vehicle_data;
+static uint8_t dashboard_needs_full_sync = 1;
+
 static int32_t clamp_int32(int32_t value, int32_t min, int32_t max)
 {
     if(value < min)
@@ -447,6 +450,8 @@ void dashboard_create(void)
         170,
         4095
     );
+
+    dashboard_needs_full_sync = 1;
 }
 
 static void update_status_box(lv_obj_t *box,
@@ -468,129 +473,179 @@ static void update_status_box(lv_obj_t *box,
 
 void dashboard_update(void)
 {
-    lv_label_set_text_fmt(
-        soc_label,
-        "SOC %u%%",
-        vehicle_data.soc
-    );
+    uint8_t force = dashboard_needs_full_sync;
 
-    lv_label_set_text_fmt(
-        rpm_label,
-        "%d RPM",
-        vehicle_data.rpm
-    );
-
-    lv_label_set_text_fmt(
-        voltage_label,
-        "%.1f V",
-        vehicle_data.pack_voltage
-    );
-
-    lv_label_set_text_fmt(
-        current_label,
-        "%.1f A",
-        vehicle_data.pack_current
-    );
-
-    lv_label_set_text_fmt(
-        motor_left_label,
-        "%.1f C",
-        vehicle_data.motor_temp_left
-    );
-
-    lv_label_set_text_fmt(
-        motor_right_label,
-        "%.1f C",
-        vehicle_data.motor_temp_right
-    );
-
-    lv_label_set_text_fmt(
-        inverter_left_label,
-        "%.1f C",
-        vehicle_data.inverter_temp_left
-    );
-
-    lv_label_set_text_fmt(
-        inverter_right_label,
-        "%.1f C",
-        vehicle_data.inverter_temp_right
-    );
-
-    lv_bar_set_value(
-        throttle_bar,
-        (int32_t)(vehicle_data.throttle * 1000.0f),
-        LV_ANIM_OFF
-    );
-
-    lv_bar_set_value(
-        brake_bar,
-        vehicle_data.brake_pressure_raw,
-        LV_ANIM_OFF
-    );
-
-    int32_t steering_percent =
-        ((int32_t)vehicle_data.steering_angle_raw - 2048) * 100 / 2048;
-
-    steering_percent = clamp_int32(steering_percent, -100, 100);
-
-    lv_bar_set_value(
-        steering_bar,
-        steering_percent,
-        LV_ANIM_OFF
-    );
-
-    lv_label_set_text(
-        failure_label,
-        failure_text(vehicle_data.last_failure)
-    );
-
-    switch(vehicle_data.drive_state)
+    if(force || vehicle_data.soc != prev_vehicle_data.soc)
     {
-        case 0:
-            lv_label_set_text(state_label, "NEUTRAL");
-            break;
-
-        case 1:
-            lv_label_set_text(state_label, "DRIVE");
-            break;
-
-        case 2:
-            lv_label_set_text(state_label, "REVERSE");
-            break;
-
-        default:
-            lv_label_set_text(state_label, "UNKNOWN");
-            break;
-    }
-
-    if(vehicle_data.last_failure != RTD_FAIL_NONE)
-    {
-        lv_obj_set_style_text_color(
-            state_label,
-            lv_color_hex(0xFF3333),
-            0
-        );
-    }
-    else
-    {
-        lv_obj_set_style_text_color(
-            state_label,
-            lv_color_hex(0x00FF55),
-            0
+        lv_label_set_text_fmt(
+            soc_label,
+            "SOC %u%%",
+            vehicle_data.soc
         );
     }
 
-    update_status_box(
-        air1_box,
-        air1_label,
-        "AIR 1",
-        vehicle_data.air1_closed
-    );
+    if(force || vehicle_data.rpm != prev_vehicle_data.rpm)
+    {
+        lv_label_set_text_fmt(
+            rpm_label,
+            "%d RPM",
+            vehicle_data.rpm
+        );
+    }
 
-    update_status_box(
-        air2_box,
-        air2_label,
-        "AIR 2",
-        vehicle_data.air2_closed
-    );
+    if(force || vehicle_data.pack_voltage != prev_vehicle_data.pack_voltage)
+    {
+        lv_label_set_text_fmt(
+            voltage_label,
+            "%.1f V",
+            vehicle_data.pack_voltage
+        );
+    }
+
+    if(force || vehicle_data.pack_current != prev_vehicle_data.pack_current)
+    {
+        lv_label_set_text_fmt(
+            current_label,
+            "%.1f A",
+            vehicle_data.pack_current
+        );
+    }
+
+    if(force || vehicle_data.motor_temp_left != prev_vehicle_data.motor_temp_left)
+    {
+        lv_label_set_text_fmt(
+            motor_left_label,
+            "%.1f C",
+            vehicle_data.motor_temp_left
+        );
+    }
+
+    if(force || vehicle_data.motor_temp_right != prev_vehicle_data.motor_temp_right)
+    {
+        lv_label_set_text_fmt(
+            motor_right_label,
+            "%.1f C",
+            vehicle_data.motor_temp_right
+        );
+    }
+
+    if(force || vehicle_data.inverter_temp_left != prev_vehicle_data.inverter_temp_left)
+    {
+        lv_label_set_text_fmt(
+            inverter_left_label,
+            "%.1f C",
+            vehicle_data.inverter_temp_left
+        );
+    }
+
+    if(force || vehicle_data.inverter_temp_right != prev_vehicle_data.inverter_temp_right)
+    {
+        lv_label_set_text_fmt(
+            inverter_right_label,
+            "%.1f C",
+            vehicle_data.inverter_temp_right
+        );
+    }
+
+    if(force || vehicle_data.throttle != prev_vehicle_data.throttle)
+    {
+        lv_bar_set_value(
+            throttle_bar,
+            (int32_t)(vehicle_data.throttle * 1000.0f),
+            LV_ANIM_OFF
+        );
+    }
+
+    if(force || vehicle_data.brake_pressure_raw != prev_vehicle_data.brake_pressure_raw)
+    {
+        lv_bar_set_value(
+            brake_bar,
+            vehicle_data.brake_pressure_raw,
+            LV_ANIM_OFF
+        );
+    }
+
+    if(force || vehicle_data.steering_angle_raw != prev_vehicle_data.steering_angle_raw)
+    {
+        int32_t steering_percent =
+            ((int32_t)vehicle_data.steering_angle_raw - 2048) * 100 / 2048;
+
+        steering_percent = clamp_int32(steering_percent, -100, 100);
+
+        lv_bar_set_value(
+            steering_bar,
+            steering_percent,
+            LV_ANIM_OFF
+        );
+    }
+
+    if(force || vehicle_data.last_failure != prev_vehicle_data.last_failure)
+    {
+        lv_label_set_text(
+            failure_label,
+            failure_text(vehicle_data.last_failure)
+        );
+
+        if(vehicle_data.last_failure != RTD_FAIL_NONE)
+        {
+            lv_obj_set_style_text_color(
+                state_label,
+                lv_color_hex(0xFF3333),
+                0
+            );
+        }
+        else
+        {
+            lv_obj_set_style_text_color(
+                state_label,
+                lv_color_hex(0x00FF55),
+                0
+            );
+        }
+    }
+
+    if(force || vehicle_data.drive_state != prev_vehicle_data.drive_state)
+    {
+        switch(vehicle_data.drive_state)
+        {
+            case 0:
+                lv_label_set_text(state_label, "NEUTRAL");
+                break;
+
+            case 1:
+                lv_label_set_text(state_label, "DRIVE");
+                break;
+
+            case 2:
+                lv_label_set_text(state_label, "REVERSE");
+                break;
+
+            default:
+                lv_label_set_text(state_label, "UNKNOWN");
+                break;
+        }
+    }
+
+    if(force || vehicle_data.air1_closed != prev_vehicle_data.air1_closed)
+    {
+        update_status_box(
+            air1_box,
+            air1_label,
+            "AIR 1",
+            vehicle_data.air1_closed
+        );
+    }
+
+    if(force || vehicle_data.air2_closed != prev_vehicle_data.air2_closed)
+    {
+        update_status_box(
+            air2_box,
+            air2_label,
+            "AIR 2",
+            vehicle_data.air2_closed
+        );
+    }
+
+    prev_vehicle_data = vehicle_data;
+    dashboard_needs_full_sync = 0;
 }
